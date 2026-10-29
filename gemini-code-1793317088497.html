@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InvestigApp AI - Asistente de Investigación Cualitativa</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #6366f1;
+      --primary-dark: #312e81;
+      --accent: #06b6d4;
+      --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+      --bg-main: #f3f4f6;
+      --bg-card: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 16px;
+      --shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.08), 0 8px 10px -6px rgba(79, 70, 229, 0.08);
+      --font-main: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--primary-dark);
+      background-image: var(--accent-gradient);
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(79, 70, 229, 0.2);
+    }
+
+    .brand { display: flex; flex-direction: column; gap: 0.25rem; }
+    .brand-title { font-weight: 800; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem; letter-spacing: -0.5px; }
+
+    .progress-bar-container { width: 150px; background: rgba(255,255,255,0.25); height: 8px; border-radius: 999px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: #34d399; width: 0%; transition: width 0.4s ease; border-radius: 999px; }
+
+    .header-actions { display: flex; gap: 0.75rem; align-items: center; }
+
+    button {
+      cursor: pointer;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    button:hover { transform: translateY(-2px); }
+
+    .btn-primary { background: white; color: var(--primary); }
+    .btn-primary:hover { background: #f8fafc; }
+    .btn-secondary { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); }
+    .btn-success { background: #10b981; color: white; }
+    .btn-ai { background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: white; margin-top: 0.75rem; margin-bottom: 1rem; width: 100%; justify-content: center; }
+
+    .app-container { display: flex; flex: 1; overflow: hidden; }
+
+    aside.sidebar {
+      width: 320px;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem 1rem;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .floor-group { margin-bottom: 1.5rem; width: 100%; }
+    .floor-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: 0.5rem 0.75rem; font-weight: 800; }
+
+    .nav-room-btn {
+      width: 100%;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      background: transparent;
+      color: var(--text-main);
+      border-radius: 12px;
+      border: none;
+      justify-content: flex-start;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+    .nav-room-btn:hover { background: #f3f4f6; color: var(--primary); }
+    .nav-room-btn.active { background: #e0e7ff; color: var(--primary); font-weight: 700; }
+
+    main.content-area { flex: 1; padding: 2.5rem; overflow-y: auto; }
+
+    .room-container {
+      display: none;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      animation: fadeIn 0.3s ease;
+    }
+    .room-container.active { display: block; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .room-header { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f3f4f6; }
+    .room-header h2 { font-size: 1.6rem; color: var(--primary-dark); display: flex; align-items: center; gap: 0.75rem; }
+    .room-header p { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.3rem; }
+
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; color: #374151; }
+
+    input[type="text"], input[type="password"], input[type="url"], textarea, select {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      background: #fafafa;
+      transition: all 0.2s;
+    }
+    input:focus, textarea:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
+    textarea { min-height: 140px; resize: vertical; }
+
+    .word-counter { font-size: 0.8rem; color: var(--text-muted); text-align: right; margin-top: 0.4rem; font-weight: 600; }
+    .word-counter.exceeded { color: var(--danger); font-weight: bold; }
+
+    .api-config-box { background: #eef2ff; border: 1px solid #c7d2fe; padding: 1.25rem; border-radius: var(--radius); margin-bottom: 2rem; }
+    .repo-section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    .repo-box { background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+
+    .drop-zone { border: 2px dashed var(--primary); border-radius: 12px; padding: 1.5rem; text-align: center; background: #eef2ff; cursor: pointer; }
+    .drop-zone.dragover { background: #e0e7ff; }
+
+    .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem; margin-top: 1.5rem; }
+    .file-card { background: #fafafa; border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; position: relative; }
+    .file-card h4 { font-size: 0.95rem; word-break: break-all; margin-bottom: 0.4rem; color: var(--primary-dark); }
+    .file-card p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .file-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(31, 41, 55, 0.7); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; padding: 2rem; }
+    .modal-overlay.active { display: flex; }
+    .modal-content { background: white; border-radius: 20px; max-width: 900px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 2.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+
+    .print-doc { font-family: 'Times New Roman', Times, serif; color: #000; line-height: 1.8; font-size: 11pt; }
+    .print-doc h1 { font-size: 16pt; text-align: center; margin-bottom: 2rem; text-transform: uppercase; }
+    .print-doc h2 { font-size: 13pt; margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #ccc; padding-bottom: 0.2rem; }
+    .print-doc p { text-align: justify; text-indent: 1.5cm; margin-bottom: 1rem; }
+    .apa-citation-item { padding-left: 1.5cm; text-indent: -1.5cm; margin-bottom: 0.5rem; }
+
+    #toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--primary-dark); color: white; padding: 0.85rem 1.5rem; border-radius: 999px; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2000; }
+    #toast.show { opacity: 1; }
+
+    @media print {
+      header, aside, .header-actions, .no-print { display: none !important; }
+      body, main { background: white; padding: 0; }
+      .modal-overlay { position: static; background: none; }
+      .modal-content { max-width: 100%; box-shadow: none; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-title">🤖 InvestigApp AI</div>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 0.75rem; font-weight: 700; opacity: 0.9;">Progreso: <b id="progress-text">0%</b></span>
+        <div class="progress-bar-container"><div id="progress-bar" class="progress-bar-fill"></div></div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-secondary" onclick="AppStore.createSnapshot()">📸 Snapshot</button>
+      <button class="btn-primary" onclick="UIChassis.openPreviewModal()">🖨️ Ver Documento</button>
+      <button class="btn-secondary" onclick="AppStore.exportJSON()">📥 JSON</button>
+      <button class="btn-success" onclick="AppStore.saveToDisk()">💾 Guardar</button>
+    </div>
+  </header>
+
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="floor-group">
+        <div class="floor-title">Cimientos de IA</div>
+        <button class="nav-room-btn active" onclick="UIChassis.showRoom('room-config-ia')">🔑 Configuración API Key</button>
+      </div>
+      <div class="floor-group">
+        <div class="floor-title">Piso 1: Fundamentación</div>
+        <button class="nav-room-btn" onclick="UIChassis.showRoom('room-titulo')">🏷️ 1.1 Título</button>
+        <button class="nav-room-btn" onclick="UIChassis.showRoom('room-planteamiento')">🎯 1.2 Planteamiento</button>
+        <button class="nav-room-btn" onclick="UIChassis.showRoom('room-justificacion')">💡 1.3 Justificación</button>
+      </div>
+      <div class="floor-group">
+        <div class="floor-title">Piso 2: Referentes</div>
+        <button class="nav-room-btn" onclick="UIChassis.showRoom('room-antecedentes')">🔍 2.1 Antecedentes</button>
+        <button class="nav-room-btn" onclick="UIChassis.showRoom('room-referente-conceptual')">🧠 2.2 Conceptual</button>
+      </div>
+      <div class="floor-group">
+        <div class="floor-title">Piso 3: Operativa</div>
+        <button class="nav-room-btn" onclick="UIChassis.showRoom('room-objetivos')">🎯 3.1 Objetivos</button>
+        <button class="nav-room-btn" onclick="UIChassis.showRoom('room-metodologia')">⚙️ 3.2 Metodología</button>
+        <button class="nav-room-btn" onclick="UIChassis.showRoom('room-cronograma')">📅 3.3 Cronograma</button>
+      </div>
+      <div class="floor-group">
+        <div class="floor-title">Piso 4: Síntesis</div>
+        <button class="nav-room-btn" onclick="UIChassis.showRoom('room-resumen')">✨ 4.1 Resumen y APA</button>
+      </div>
+      <div class="floor-group">
+        <div class="floor-title">Piso 5: Repositorio</div>
+        <button class="nav-room-btn" onclick="UIChassis.showRoom('room-repositorio')">📂 5.1 Repositorio de Fuentes</button>
+      </div>
+    </aside>
+
+    <main class="content-area">
+
+      <!-- CONFIGURACIÓN IA -->
+      <section id="room-config-ia" class="room-container room-config-ia active">
+        <div class="room-header">
+          <h2>🔑 Configuración de Inteligencia Artificial (OpenAI)</h2>
+          <p>Ingresa tu clave API de OpenAI. La IA cruzará tus insumos del Piso 5 con literatura académica externa y aplicará la teoría cualitativa de Sampieri.</p>
+        </div>
+        <div class="api-config-box">
+          <div class="form-group">
+            <label for="input-apikey">OpenAI API Key (sk-...)</label>
+            <input type="password" id="input-apikey" placeholder="sk-proj-..." oninput="AppStore.saveApiKey(this.value)">
+          </div>
+          <button class="btn-ai" style="margin-top:0;" onclick="OpenAIHelper.testConnection()">⚡ Probar Conexión con OpenAI</button>
+        </div>
+      </section>
+
+      <!-- 1.1 TÍTULO -->
+      <section id="room-titulo" class="room-container room-titulo">
+        <div class="room-header"><h2>🏷️ 1.1 Título del Proyecto</h2><p>Nombre oficial del estudio según criterios cualitativos de Sampieri (abierto, delimitado y sin sesgos direccionados).</p></div>
+        <div class="form-group"><label>Título General de la Investigación</label><input type="text" id="input-titulo" oninput="RoomTitulo.save()"></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('titulo', 'Analiza el tema central contenido en las fuentes del Piso 5 y busca en literatura académica externa. Genera un título formal cualitativo (delimitado, abierto, no direccionado) según la metodología de Sampieri.')">✨ Cruzar Insumos y Redactar Título con IA</button>
+      </section>
+
+      <!-- 1.2 PLANTEAMIENTO -->
+      <section id="room-planteamiento" class="room-container room-planteamiento">
+        <div class="room-header"><h2>🎯 1.2 Planteamiento y Formulación del Problema</h2><p>Desarrolla el propósito central, fenómeno de interés, ambiente natural y preguntas cualitativas.</p></div>
+        <div class="form-group"><label>Planteamiento del Problema</label><textarea id="input-planteamiento" oninput="RoomPlanteamiento.save()"></textarea></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('planteamiento', 'Con base en las entrevistas, documentos o textos del Piso 5 y cruzando con literatura sobre el tema, redacta el planteamiento del problema cualitativo según Sampieri: define el propósito central, el fenómeno de interés, el ambiente inicial y los participantes.')">✨ Analizar y Redactar Planteamiento con IA</button>
+
+        <div class="form-group" style="margin-top: 1.5rem;"><label>Pregunta Central de Investigación</label><input type="text" id="input-pregunta" oninput="RoomPlanteamiento.save()"></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('pregunta', 'Formula una pregunta de investigación cualitativa abierta, de carácter exploratorio o descriptivo, acorde al planteamiento cualitativo según Sampieri.')">✨ Formular Pregunta con IA</button>
+      </section>
+
+      <!-- 1.3 JUSTIFICACIÓN -->
+      <section id="room-justificacion" class="room-container room-justificacion">
+        <div class="room-header"><h2>💡 1.3 Justificación y Viabilidad</h2><p>Aporta la pertinencia social, conveniencia, implicaciones prácticas y valor teórico del proyecto.</p></div>
+        <div class="form-group"><label>Texto de Justificación y Viabilidad</label><textarea id="input-justificacion" oninput="RoomJustificacion.save()"></textarea></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('justificacion', 'Redacta la justificación y viabilidad cualitativa evaluando conveniencia, relevancia social, implicaciones prácticas y valor teórico según Sampieri, cruzando los datos del Piso 5 con fuentes académicas externas.')">✨ Redactar Justificación y Viabilidad con IA</button>
+      </section>
+
+      <!-- 2.1 ANTECEDENTES -->
+      <section id="room-antecedentes" class="room-container room-antecedentes">
+        <div class="room-header"><h2>🔍 2.1 Antecedentes Investigativos</h2><p>Estudios previos a nivel internacional, regional y nacional que sustentan la indagación.</p></div>
+        <div class="form-group"><label>Antecedentes Internacionales</label><textarea id="input-antecedentes-int" oninput="RoomAntecedentes.save()"></textarea></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('antecedentesInt', 'Busca artículos científicos e investigaciones internacionales vinculadas al tema del Piso 5 y redacta una revisión de antecedentes internacionales bajo enfoque cualitativo.')">✨ Investigar y Redactar Antecedentes Internacionales con IA</button>
+
+        <div class="form-group" style="margin-top: 1.5rem;"><label>Antecedentes Regionales (Latinoamérica)</label><textarea id="input-antecedentes-reg" oninput="RoomAntecedentes.save()"></textarea></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('antecedentesReg', 'Busca estudios e investigaciones cualitativas en Latinoamérica vinculados al tema del Piso 5 y redacta la sección de antecedentes regionales.')">✨ Investigar y Redactar Antecedentes Regionales con IA</button>
+
+        <div class="form-group" style="margin-top: 1.5rem;"><label>Antecedentes Nacionales</label><textarea id="input-antecedentes-nac" oninput="RoomAntecedentes.save()"></textarea></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('antecedentesNac', 'Investiga y sintetiza antecedentes nacionales en literatura científica vinculados al tema del Piso 5 para el marco de antecedentes.')">✨ Investigar y Redactar Antecedentes Nacionales con IA</button>
+      </section>
+
+      <!-- 2.2 REFERENTE CONCEPTUAL -->
+      <section id="room-referente-conceptual" class="room-container room-referente-conceptual">
+        <div class="room-header"><h2>🧠 2.2 Referente Conceptual</h2><p>Definiciones operativas tentativamente abiertas y categorías teóricas sujetas a la visión de los participantes.</p></div>
+        <div class="form-group"><label>Desarrollo Teórico y Categorías Iniciales</label><textarea id="input-referente" oninput="RoomReferenteConceptual.save()"></textarea></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('referente', 'Elabora un referente conceptual cualitativo segun Sampieri: define el concepto central y las categorías vinculadas detectadas en el Piso 5 y en investigaciones afines, enfatizando que son definiciones tentativas.')">✨ Construir Referente Conceptual con IA</button>
+      </section>
+
+      <!-- 3.1 OBJETIVOS -->
+      <section id="room-objetivos" class="room-container room-objetivos">
+        <div class="room-header"><h2>🎯 3.1 Objetivos de Investigación</h2><p>Formulación con verbos cualitativos abiertos (explorar, comprender, entender, examinar).</p></div>
+        <div class="form-group"><label>Objetivo General</label><textarea id="input-obj-general" oninput="RoomObjetivos.save()"></textarea></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('objGeneral', 'Redacta el Objetivo General cualitativo según la metodología de Sampieri. Usa verbos abiertos (comprender, explorar, examinar, entender) y alinea con la temática del Piso 5.')">✨ Redactar Objetivo General con IA</button>
+
+        <div class="form-group" style="margin-top: 1.5rem;"><label>Objetivos Específicos</label><textarea id="input-obj-especificos" oninput="RoomObjetivos.save()"></textarea><div id="counter-objetivos" class="word-counter">0 / 500 palabras</div></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('objEspecificos', 'Redacta entre 3 y 4 Objetivos Específicos cualitativos, secuenciales e independientes, alineados al Objetivo General e inspirados en el material del Piso 5 y fuentes científicas.')">✨ Redactar Objetivos Específicos con IA</button>
+      </section>
+
+      <!-- 3.2 METODOLOGÍA -->
+      <section id="room-metodologia" class="room-container room-metodologia">
+        <div class="room-header"><h2>⚙️ 3.2 Metodología Propuesta</h2><p>Ruta cualitativa: proceso inductivo, diseño (fenomenológico, etnografía, teoría fundamentada, etc.), inmersión e instrumentos.</p></div>
+        <div class="form-group"><label>Ruta Metodológica y Diseño Cualitativo</label><textarea id="input-metodologia" style="min-height: 220px;" oninput="RoomMetodologia.save()"></textarea><div id="counter-metodologia" class="word-counter">0 / 3000 palabras</div></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('metodologia', 'Redacta la sección metodológica cualitativa completa según Sampieri: enfoque inductivo, diseño cualitativo sugerido, muestra inicial, inmersión en el campo e instrumentos cualitativos (entrevistas, observación) acordes al estudio.')">✨ Diseñar Ruta Metodológica con IA</button>
+      </section>
+
+      <!-- 3.3 CRONOGRAMA -->
+      <section id="room-cronograma" class="room-container room-cronograma">
+        <div class="room-header"><h2>📅 3.3 Cronograma de Actividades</h2><p>Fases del estudio: inmersión inicial, recolección de datos, análisis recurrente y reporte cualitativo.</p></div>
+        <div class="form-group"><label>Planificación de Actividades</label><textarea id="input-cronograma" placeholder="Mes 1: ...&#10;Mes 2: ..." oninput="RoomCronograma.save()"></textarea></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('cronograma', 'Elabora un cronograma ordenado por fases e hitos cualitativos (inmersión en el campo, recolección, análisis cualitativo recurrente, categorías emergentes y elaboración del informe final).')">✨ Construir Cronograma con IA</button>
+      </section>
+
+      <!-- 4.1 RESUMEN Y APA -->
+      <section id="room-resumen" class="room-container room-resumen">
+        <div class="room-header"><h2>✨ 4.1 Resumen Ejecutivo y Referencias APA</h2><p>Síntesis final del protocolo de investigación y referencias bibliográficas según APA 7.ª edición.</p></div>
+        <div class="form-group"><label>Resumen del Proyecto (Máx. 300 - 500 palabras)</label><textarea id="input-resumen" oninput="RoomResumen.save()"></textarea><div id="counter-resumen" class="word-counter">0 / 500 palabras</div></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('resumen', 'Redacta un resumen ejecutivo formal (máx 300 palabras) que sintetice el problema, objetivo, justificación y diseño cualitativo basándote en todo el trabajo realizado y los insumos del Piso 5.')">✨ Generar Resumen Ejecutivo con IA</button>
+
+        <div class="apa-builder" style="margin-top: 1.5rem; background: #f8fafc; border: 2px dashed #cbd5e1; padding: 1.5rem; border-radius: var(--radius);">
+          <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--primary-dark);">📚 Generador Manual / Asistido de Citas APA (7ª Edición)</h4>
+          <div class="apa-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+            <input type="text" id="apa-autor" placeholder="Autor (Ej: Pérez, J.)">
+            <input type="text" id="apa-anio" placeholder="Año (Ej: 2025)">
+            <input type="text" id="apa-titulo" placeholder="Título de la obra">
+            <input type="text" id="apa-editorial" placeholder="Editorial / Revista / URL">
+          </div>
+          <button class="btn-primary" style="background: var(--primary); color: white;" onclick="RoomResumen.addApaCitation()">+ Añadir Cita Manual</button>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.5rem;"><label>8. Bibliografía y Referencias (APA 7.ª Edición)</label><textarea id="input-bibliografia" oninput="RoomResumen.save()"></textarea></div>
+        <button class="btn-ai" onclick="OpenAIHelper.generateContent('bibliografia', 'Sintetiza una lista de referencias bibliográficas en formato APA 7ma edición que incluya los insumos cargados en el Piso 5 y fuentes cualitativas afines consultadas.')">✨ Organizar Bibliografía APA con IA</button>
+      </section>
+
+      <!-- 5.1 REPOSITORIO DE FUENTES -->
+      <section id="room-repositorio" class="room-container room-repositorio">
+        <div class="room-header">
+          <h2>📂 5.1 Repositorio de Fuentes y Documentos de Referencia</h2>
+          <p>Carga aquí los artículos, entrevistas, documentos, páginas web o enlaces que constituyen la base empírica de tu tema. La IA los consultará y cruzará al presionar cada botón.</p>
+        </div>
+
+        <div class="repo-section-grid">
+          <div class="repo-box">
+            <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--primary-dark);">📄 Cargar Documentos y Entrevistas</h3>
+            <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+              <p style="font-weight: 600; color: var(--primary);">📥 Arrastra varios archivos o haz clic</p>
+              <small style="color: var(--text-muted)">PDFs, imágenes, archivos de texto, transcripciones</small>
+              <input type="file" id="file-input" multiple style="display: none;" onchange="RoomRepositorio.handleFiles(this.files)">
+            </div>
+          </div>
+          <div class="repo-box">
+            <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--primary-dark);">🔗 Registrar Enlaces o Artículos Web</h3>
+            <div class="form-group" style="margin-bottom: 0.75rem;"><input type="text" id="link-title" placeholder="Título del sitio o artículo"></div>
+            <div class="form-group" style="margin-bottom: 0.75rem;"><input type="url" id="link-url" placeholder="https://ejemplo.com/articulo"></div>
+            <button class="btn-primary" style="background: var(--primary); color: white; width: 100%; justify-content: center;" onclick="RoomRepositorio.addLink()">+ Agregar Enlace al Repositorio</button>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+          <h3 style="font-size: 1.1rem; color: var(--primary-dark);">📚 Fuentes Registradas (<span id="repo-count">0</span>)</h3>
+          <button class="btn-secondary" style="background: #fee2e2; color: #dc2626; border: none; padding: 0.3rem 0.75rem; font-size: 0.75rem;" onclick="RoomRepositorio.clearAll()">🗑️ Vaciar Repositorio</button>
+        </div>
+        <div class="file-grid" id="file-grid"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL VISTA PREVIA -->
+  <div id="preview-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="no-print" style="display: flex; justify-content: space-between; margin-bottom: 1.5rem; align-items: center;">
+        <h3 style="color: var(--primary-dark);">📄 Vista Previa del Protocolo de Investigación</h3>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn-success" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+          <button class="btn-secondary" style="background: #e5e7eb; color: #374151;" onclick="UIChassis.closePreviewModal()">✕ Cerrar</button>
+        </div>
+      </div>
+      <div id="print-doc-body" class="print-doc"></div>
+    </div>
+  </div>
+
+  <!-- MODAL VISUALIZAR ARCHIVO -->
+  <div id="file-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 700px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+        <h3 id="file-modal-title" style="color: var(--primary-dark);">Vista Previa</h3>
+        <button class="btn-secondary" style="background: #e5e7eb; color: #374151;" onclick="UIChassis.closeFileModal()">✕ Cerrar</button>
+      </div>
+      <div id="file-modal-body" style="text-align: center; max-height: 60vh; overflow-y: auto;"></div>
+    </div>
+  </div>
+
+  <div id="toast">¡Guardado con éxito! ✨</div>
+
+  <script>
+    const DBEngine = {
+      dbName: 'InvestigApp_DB_Qual_v3',
+      dbVersion: 1,
+      db: null,
+      init() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(this.dbName, this.dbVersion);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('files')) db.createObjectStore('files', { keyPath: 'id' });
+            if (!db.objectStoreNames.contains('links')) db.createObjectStore('links', { keyPath: 'id' });
+          };
+          req.onsuccess = (e) => { this.db = e.target.result; resolve(this.db); };
+          req.onerror = (e) => reject(e);
+        });
+      },
+      addItem(storeName, item) {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction(storeName, 'readwrite');
+          const store = tx.objectStore(storeName);
+          const req = store.put(item);
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e);
+        });
+      },
+      getAll(storeName) {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction(storeName, 'readonly');
+          const store = tx.objectStore(storeName);
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = (e) => reject(e);
+        });
+      },
+      deleteItem(storeName, id) {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction(storeName, 'readwrite');
+          const store = tx.objectStore(storeName);
+          const req = store.delete(id);
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e);
+        });
+      },
+      clearStore(storeName) {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction(storeName, 'readwrite');
+          const store = tx.objectStore(storeName);
+          const req = store.clear();
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e);
+        });
+      }
+    };
+
+    const AppStore = {
+      key: 'InvestigApp_QualitativeCore_v3',
+      data: {
+        apiKey: '', 
+        titulo: '', 
+        planteamiento: '', 
+        pregunta: '', 
+        justificacion: '',
+        antecedentesInt: '', 
+        antecedentesReg: '', 
+        antecedentesNac: '', 
+        referente: '',
+        objGeneral: '', 
+        objEspecificos: '', 
+        metodologia: '', 
+        cronograma: '', 
+        resumen: '', 
+        bibliografia: '', 
+        snapshots: []
+      },
+      async init() {
+        await DBEngine.init();
+        const saved = localStorage.getItem(this.key);
+        if (saved) { try { this.data = { ...this.data, ...JSON.parse(saved) }; } catch(e){} }
+        this.populateFields();
+        this.calculateProgress();
+      },
+      saveToDisk() {
+        localStorage.setItem(this.key, JSON.stringify(this.data));
+        this.calculateProgress();
+        UIChassis.showToast('¡Avance guardado con éxito! ✨');
+      },
+      saveApiKey(key) {
+        this.data.apiKey = key.trim();
+        localStorage.setItem(this.key, JSON.stringify(this.data));
+      },
+      calculateProgress() {
+        const fields = ['titulo', 'planteamiento', 'pregunta', 'justificacion', 'antecedentesInt', 'antecedentesReg', 'antecedentesNac', 'referente', 'objGeneral', 'objEspecificos', 'metodologia', 'cronograma', 'resumen', 'bibliografia'];
+        let filled = 0;
+        fields.forEach(f => { if (this.data[f] && this.data[f].trim().length > 10) filled++; });
+        const pct = Math.round((filled / fields.length) * 100);
+        document.getElementById('progress-bar').style.width = pct + '%';
+        document.getElementById('progress-text').textContent = pct + '%';
+      },
+      createSnapshot() {
+        const snap = { timestamp: new Date().toLocaleString(), data: JSON.parse(JSON.stringify(this.data)) };
+        this.data.snapshots = this.data.snapshots || [];
+        this.data.snapshots.push(snap);
+        this.saveToDisk();
+        UIChassis.showToast('📸 Snapshot de respaldo creado');
+      },
+      populateFields() {
+        document.getElementById('input-apikey').value = this.data.apiKey || '';
+        document.getElementById('input-titulo').value = this.data.titulo || '';
+        document.getElementById('input-planteamiento').value = this.data.planteamiento || '';
+        document.getElementById('input-pregunta').value = this.data.pregunta || '';
+        document.getElementById('input-justificacion').value = this.data.justificacion || '';
+        document.getElementById('input-antecedentes-int').value = this.data.antecedentesInt || '';
+        document.getElementById('input-antecedentes-reg').value = this.data.antecedentesReg || '';
+        document.getElementById('input-antecedentes-nac').value = this.data.antecedentesNac || '';
+        document.getElementById('input-referente').value = this.data.referente || '';
+        document.getElementById('input-obj-general').value = this.data.objGeneral || '';
+        document.getElementById('input-obj-especificos').value = this.data.objEspecificos || '';
+        document.getElementById('input-metodologia').value = this.data.metodologia || '';
+        document.getElementById('input-cronograma').value = this.data.cronograma || '';
+        document.getElementById('input-resumen').value = this.data.resumen || '';
+        document.getElementById('input-bibliografia').value = this.data.bibliografia || '';
+        RoomObjetivos.updateCounter();
+        RoomMetodologia.updateCounter();
+        RoomResumen.updateCounter();
+        RoomRepositorio.render();
+      },
+      exportJSON() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data, null, 2));
+        const a = document.createElement('a'); a.href = dataStr; a.download = `Proyecto_Investigacion_${Date.now()}.json`; a.click();
+      }
+    };
+
+    const OpenAIHelper = {
+      async testConnection() {
+        const key = AppStore.data.apiKey;
+        if (!key) { alert('Por favor ingresa primero tu API Key de OpenAI en la configuración.'); return; }
+        UIChassis.showToast('Verificando conexión con OpenAI...');
+        try {
+          const res = await fetch('https://api.openai.com/v1/models', { headers: { 'Authorization': `Bearer ${key}` } });
+          if (res.ok) UIChassis.showToast('✅ ¡Conexión con OpenAI exitosa!');
+          else alert('Error: La API Key ingresada no es válida.');
+        } catch(e) { alert('Error de red al conectar con OpenAI.'); }
+      },
+
+      async generateContent(sectionType, promptInstruction) {
+        const key = AppStore.data.apiKey;
+        if (!key) { alert('Por favor configura tu API Key de OpenAI antes de solicitar asistencia.'); return; }
+
+        UIChassis.showToast('🤖 Cruzando insumos del Piso 5 con literatura externa y redactando...');
+
+        const files = await DBEngine.getAll('files');
+        const links = await DBEngine.getAll('links');
+
+        let repoContext = "Material empírico y fuentes guardadas en el Piso 5:\n";
+        files.forEach(f => { repoContext += `- Documento/Entrevista: ${f.name}\n`; });
+        links.forEach(l => { repoContext += `- Artículo/Web: ${l.title} (${l.url})\n`; });
+
+        const messages = [
+          { 
+            role: "system", 
+            content: "Eres un experto metodólogo especializado en Investigación Cualitativa según la teoría de Roberto Hernández-Sampieri. Tu función es cruzar las fuentes internas provistas por el usuario con literatura y fuentes de investigación cualitativas externas sobre el tema. Genera directamente el texto solicitado para el apartado correspondiente, con lenguaje técnico, riguroso e independiente." 
+          },
+          { 
+            role: "user", 
+            content: `${repoContext}\n\nInstrucción de investigación: ${promptInstruction}` 
+          }
+        ];
+
+        try {
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+            body: JSON.stringify({ model: 'gpt-4o-mini', messages: messages, temperature: 0.7 })
+          });
+
+          const json = await response.json();
+          if (json.choices && json.choices.length > 0) {
+            const aiText = json.choices[0].message.content.trim();
+            this.applyAiResult(sectionType, aiText);
+            UIChassis.showToast('✨ ¡Contenido cualitativo aplicado con éxito!');
+          } else {
+            alert('OpenAI no devolvió respuesta. Revisa tu saldo o la clave.');
+          }
+        } catch(e) {
+          console.error(e);
+          alert('Ocurrió un error al comunicarse con la API de OpenAI.');
+        }
+      },
+
+      applyAiResult(type, text) {
+        if (type === 'titulo') { document.getElementById('input-titulo').value = text; RoomTitulo.save(); }
+        else if (type === 'planteamiento') { document.getElementById('input-planteamiento').value = text; RoomPlanteamiento.save(); }
+        else if (type === 'pregunta') { document.getElementById('input-pregunta').value = text; RoomPlanteamiento.save(); }
+        else if (type === 'justificacion') { document.getElementById('input-justificacion').value = text; RoomJustificacion.save(); }
+        else if (type === 'antecedentesInt') { document.getElementById('input-antecedentes-int').value = text; RoomAntecedentes.save(); }
+        else if (type === 'antecedentesReg') { document.getElementById('input-antecedentes-reg').value = text; RoomAntecedentes.save(); }
+        else if (type === 'antecedentesNac') { document.getElementById('input-antecedentes-nac').value = text; RoomAntecedentes.save(); }
+        else if (type === 'referente') { document.getElementById('input-referente').value = text; RoomReferenteConceptual.save(); }
+        else if (type === 'objGeneral') { document.getElementById('input-obj-general').value = text; RoomObjetivos.save(); }
+        else if (type === 'objEspecificos') { document.getElementById('input-obj-especificos').value = text; RoomObjetivos.save(); }
+        else if (type === 'metodologia') { document.getElementById('input-metodologia').value = text; RoomMetodologia.save(); }
+        else if (type === 'cronograma') { document.getElementById('input-cronograma').value = text; RoomCronograma.save(); }
+        else if (type === 'resumen') { document.getElementById('input-resumen').value = text; RoomResumen.save(); }
+        else if (type === 'bibliografia') { document.getElementById('input-bibliografia').value = text; RoomResumen.save(); }
+      }
+    };
+
+    const UIChassis = {
+      showRoom(roomId) {
+        document.querySelectorAll('.room-container').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-room-btn').forEach(el => el.classList.remove('active'));
+        const target = document.getElementById(roomId);
+        if (target) target.classList.add('active');
+        const btn = Array.from(document.querySelectorAll('.nav-room-btn')).find(b => b.getAttribute('onclick').includes(roomId));
+        if (btn) btn.classList.add('active');
+      },
+      showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg; toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+      },
+      countWords(text) { return text.trim() ? text.trim().split(/\s+/).length : 0; },
+      openPreviewModal() {
+        const d = AppStore.data;
+        const body = document.getElementById('print-doc-body');
+        const biblioFormatted = (d.bibliografia || '').split('\n').filter(line => line.trim()).map(line => `<div class="apa-citation-item">${line}</div>`).join('');
+        body.innerHTML = `
+          <h1>${d.titulo || 'PROYECTO DE INVESTIGACIÓN CUALITATIVA'}</h1>
+          <h2>1. Resumen Ejecutivo</h2><p>${d.resumen || 'Sin información.'}</p>
+          <h2>2. Planteamiento del Problema Cualitativo</h2><p>${d.planteamiento || 'Sin información.'}</p><p><b>Pregunta de Investigación:</b> ${d.pregunta || 'Sin formulación.'}</p>
+          <h2>3. Justificación y Viabilidad</h2><p>${d.justificacion || 'Sin información.'}</p>
+          <h2>4. Antecedentes Investigativos</h2>
+          <p><b>Internacionales:</b> ${d.antecedentesInt || 'N/A'}</p>
+          <p><b>Regionales:</b> ${d.antecedentesReg || 'N/A'}</p>
+          <p><b>Nacionales:</b> ${d.antecedentesNac || 'N/A'}</p>
+          <h2>5. Referente Conceptual</h2><p>${d.referente || 'Sin información.'}</p>
+          <h2>6. Objetivos de Investigación</h2><p><b>General:</b> ${d.objGeneral || 'Sin definir.'}</p><p><b>Específicos:</b> ${d.objEspecificos || 'Sin definir.'}</p>
+          <h2>7. Ruta Metodológica</h2><p>${d.metodologia || 'Sin información.'}</p>
+          <h2>8. Cronograma de Actividades</h2><p>${d.cronograma || 'Sin información.'}</p>
+          <h2>9. Referencias Bibliográficas (APA 7ª ed.)</h2>${biblioFormatted || '<p>Sin referencias cargadas.</p>'}
+        `;
+        document.getElementById('preview-modal').classList.add('active');
+      },
+      closePreviewModal() { document.getElementById('preview-modal').classList.remove('active'); },
+      closeFileModal() { document.getElementById('file-modal').classList.remove('active'); }
+    };
+
+    const RoomTitulo = { save() { AppStore.data.titulo = document.getElementById('input-titulo').value; AppStore.saveToDisk(); } };
+    const RoomPlanteamiento = { save() { AppStore.data.planteamiento = document.getElementById('input-planteamiento').value; AppStore.data.pregunta = document.getElementById('input-pregunta').value; AppStore.saveToDisk(); } };
+    const RoomJustificacion = { save() { AppStore.data.justificacion = document.getElementById('input-justificacion').value; AppStore.saveToDisk(); } };
+    const RoomAntecedentes = { 
+      save() { 
+        AppStore.data.antecedentesInt = document.getElementById('input-antecedentes-int').value; 
+        AppStore.data.antecedentesReg = document.getElementById('input-antecedentes-reg').value; 
+        AppStore.data.antecedentesNac = document.getElementById('input-antecedentes-nac').value; 
+        AppStore.saveToDisk(); 
+      } 
+    };
+    const RoomReferenteConceptual = { save() { AppStore.data.referente = document.getElementById('input-referente').value; AppStore.saveToDisk(); } };
+    
+    const RoomObjetivos = {
+      save() {
+        AppStore.data.objGeneral = document.getElementById('input-obj-general').value;
+        AppStore.data.objEspecificos = document.getElementById('input-obj-especificos').value;
+        this.updateCounter(); AppStore.saveToDisk();
+      },
+      updateCounter() {
+        const text = (AppStore.data.objGeneral || '') + ' ' + (AppStore.data.objEspecificos || '');
+        const count = UIChassis.countWords(text);
+        const el = document.getElementById('counter-objetivos');
+        el.textContent = `${count} / 500 palabras`; el.classList.toggle('exceeded', count > 500);
+      }
+    };
+
+    const RoomMetodologia = {
+      save() {
+        AppStore.data.metodologia = document.getElementById('input-metodologia').value;
+        this.updateCounter(); AppStore.saveToDisk();
+      },
+      updateCounter() {
+        const count = UIChassis.countWords(AppStore.data.metodologia || '');
+        const el = document.getElementById('counter-metodologia');
+        el.textContent = `${count} / 3000 palabras`; el.classList.toggle('exceeded', count > 3000);
+      }
+    };
+
+    const RoomCronograma = { save() { AppStore.data.cronograma = document.getElementById('input-cronograma').value; AppStore.saveToDisk(); } };
+
+    const RoomResumen = {
+      save() {
+        AppStore.data.resumen = document.getElementById('input-resumen').value;
+        AppStore.data.bibliografia = document.getElementById('input-bibliografia').value;
+        this.updateCounter(); AppStore.saveToDisk();
+      },
+      updateCounter() {
+        const count = UIChassis.countWords(AppStore.data.resumen || '');
+        const el = document.getElementById('counter-resumen');
+        el.textContent = `${count} / 500 palabras`; el.classList.toggle('exceeded', count > 500);
+      },
+      addApaCitation() {
+        const aut = document.getElementById('apa-autor').value.trim();
+        const anio = document.getElementById('apa-anio').value.trim();
+        const tit = document.getElementById('apa-titulo').value.trim();
+        const ed = document.getElementById('apa-editorial').value.trim();
+        if (!aut || !tit) { alert('Por favor ingresa al menos el autor y el título.'); return; }
+        const cita = `${aut} (${anio || 's.f.'}). ${tit}. ${ed}.`;
+        const current = document.getElementById('input-bibliografia').value;
+        const newBib = current ? current + '\n' + cita : cita;
+        document.getElementById('input-bibliografia').value = newBib;
+        this.save();
+        document.getElementById('apa-autor').value = ''; document.getElementById('apa-anio').value = '';
+        document.getElementById('apa-titulo').value = ''; document.getElementById('apa-editorial').value = '';
+      }
+    };
+
+    const RoomRepositorio = {
+      init() {
+        const zone = document.getElementById('drop-zone');
+        ['dragenter', 'dragover'].forEach(e => zone.addEventListener(e, (ev) => { ev.preventDefault(); zone.classList.add('dragover'); }));
+        ['dragleave', 'drop'].forEach(e => zone.addEventListener(e, (ev) => { ev.preventDefault(); zone.classList.remove('dragover'); }));
+        zone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) this.handleFiles(e.dataTransfer.files);
+        });
+      },
+      async handleFiles(files) {
+        const total = files.length; let count = 0;
+        for (const file of Array.from(files)) {
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            const item = { id: Date.now() + Math.random(), name: file.name, size: (file.size / 1024).toFixed(1) + ' KB', type: file.type, content: e.target.result };
+            await DBEngine.addItem('files', item);
+            count++;
+            if (count === total) {
+              await this.render();
+              UIChassis.showToast(`✅ ${total} archivo(s) guardado(s) en la base de datos`);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      },
+      async addLink() {
+        const title = document.getElementById('link-title').value.trim();
+        const url = document.getElementById('link-url').value.trim();
+        if (!title || !url) { alert('Por favor ingresa el título y la URL del enlace.'); return; }
+        const item = { id: Date.now() + Math.random(), title: title, url: url };
+        await DBEngine.addItem('links', item);
+        await this.render();
+        document.getElementById('link-title').value = ''; document.getElementById('link-url').value = '';
+        UIChassis.showToast('✅ Enlace web guardado');
+      },
+      async deleteFile(id) { await DBEngine.deleteItem('files', id); await this.render(); },
+      async deleteLink(id) { await DBEngine.deleteItem('links', id); await this.render(); },
+      async clearAll() {
+        if (confirm('¿Estás seguro de vaciar la base de datos del repositorio?')) {
+          await DBEngine.clearStore('files'); await DBEngine.clearStore('links');
+          await this.render(); UIChassis.showToast('🗑️ Repositorio vaciado');
+        }
+      },
+      async previewFile(id) {
+        const files = await DBEngine.getAll('files');
+        const file = files.find(f => f.id === id);
+        if (!file) return;
+        document.getElementById('file-modal-title').textContent = file.name;
+        const body = document.getElementById('file-modal-body');
+        if (file.type && file.type.startsWith('image/')) body.innerHTML = `<img src="${file.content}" style="max-width: 100%; border-radius: 12px;">`;
+        else body.innerHTML = `<p style="color: var(--text-muted)">Documento guardado de forma segura en la base de datos.</p>`;
+        document.getElementById('file-modal').classList.add('active');
+      },
+      async render() {
+        const files = await DBEngine.getAll('files');
+        const links = await DBEngine.getAll('links');
+        const container = document.getElementById('file-grid');
+        container.innerHTML = '';
+        document.getElementById('repo-count').textContent = files.length + links.length;
+
+        files.forEach(file => {
+          const card = document.createElement('div');
+          card.className = 'file-card';
+          card.innerHTML = `
+            <h4>📄 ${file.name}</h4><p>Tamaño: ${file.size}</p>
+            <div class="file-actions">
+              <button class="btn-primary" style="background: var(--primary); color: white; padding: 0.3rem 0.75rem; font-size: 0.75rem;" onclick="RoomRepositorio.previewFile(${file.id})">👁️ Ver</button>
+              <button class="btn-secondary" style="background: #fee2e2; color: #dc2626; border: none; padding: 0.3rem 0.75rem; font-size: 0.75rem;" onclick="RoomRepositorio.deleteFile(${file.id})">✕ Eliminar</button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+
+        links.forEach(link => {
+          const card = document.createElement('div');
+          card.className = 'file-card';
+          card.innerHTML = `
+            <h4>🔗 ${link.title}</h4><p style="word-break: break-all; color: var(--primary); font-size: 0.75rem;">${link.url}</p>
+            <div class="file-actions">
+              <a href="${link.url}" target="_blank" class="btn-primary" style="background: var(--accent); color: white; padding: 0.3rem 0.75rem; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center;">🌐 Abrir</a>
+              <button class="btn-secondary" style="background: #fee2e2; color: #dc2626; border: none; padding: 0.3rem 0.75rem; font-size: 0.75rem;" onclick="RoomRepositorio.deleteLink(${link.id})">✕ Eliminar</button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await AppStore.init();
+      RoomRepositorio.init();
+    });
+  </script>
+</body>
+</html>
